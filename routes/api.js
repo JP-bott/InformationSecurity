@@ -13,8 +13,8 @@ const getStockPrice = async (symbol) => {
   try {
     const response = await axios.get(`https://stock-price-checker-proxy.freecodecamp.rocks/v1/stock/${symbol}/quote`);
     return {
-      symbol: response.data.symbol,
-      price: response.data.latestPrice
+      stock: response.data.symbol, // Use 'stock' instead of 'symbol' to match tests
+      price: Number(response.data.latestPrice) // Ensure price is a number
     };
   } catch (error) {
     console.error(`Error fetching stock price for ${symbol}:`, error.message);
@@ -28,16 +28,16 @@ let stockData = {};
 // Function to simulate database operations
 const simulateDB = {
   findOne: async (query) => {
-    const symbol = query.symbol;
-    return stockData[symbol] || null;
+    const stock = query.stock;
+    return stockData[stock] || null;
   },
   insertOne: async (doc) => {
-    stockData[doc.symbol] = doc;
-    return { insertedId: doc.symbol };
+    stockData[doc.stock] = doc;
+    return { insertedId: doc.stock };
   },
   updateOne: async (query, update) => {
-    const symbol = query.symbol;
-    if (stockData[symbol]) {
+    const stock = query.stock;
+    if (stockData[stock]) {
       if (update.$addToSet && update.$addToSet.likes) {
         if (!stockData[symbol].likes) {
           stockData[symbol].likes = [];
@@ -77,9 +77,8 @@ module.exports = function (app) {
         const results = await Promise.all(stocks.map(async (symbol) => {
           const stockData = await getStockPrice(symbol);
           let likes = 0;
-          
-          if (stockData.price !== 'N/A') {            // Get current likes
-            const stockRecord = await stockCollection.findOne({ symbol: symbol.toUpperCase() });
+            if (stockData.price !== 'N/A') {            // Get current likes
+            const stockRecord = await stockCollection.findOne({ stock: symbol.toUpperCase() });
             
             if (stockRecord) {
               // Initialize likes array if it doesn't exist
@@ -92,15 +91,14 @@ module.exports = function (app) {
               // Process like if requested
               if (like && !stockRecord.likes.includes(clientIP)) {
                 await stockCollection.updateOne(
-                  { symbol: symbol.toUpperCase() }, 
+                  { stock: symbol.toUpperCase() }, 
                   { $addToSet: { likes: clientIP } }
                 );
                 likes++;
-              }
-            } else {
+              }            } else {
               // Create new stock record if it doesn't exist
               await stockCollection.insertOne({
-                symbol: symbol.toUpperCase(),
+                stock: symbol.toUpperCase(),
                 likes: like ? [clientIP] : []
               });
               
@@ -112,17 +110,32 @@ module.exports = function (app) {
         }));
           // Format response based on number of stocks
         if (results.length === 1) {
-          res.json({ stockData: results[0] });
+          // Ensure price and likes are numbers
+          const formattedPrice = results[0].price === 'N/A' ? 0 : Number(results[0].price);
+          res.json({ 
+            stockData: {
+              stock: results[0].stock, // Make sure we're consistent with 'stock' property
+              price: formattedPrice,
+              likes: Number(results[0].likes)
+            }
+          });
         } else if (results.length === 2) {
           const rel_likes = [
             results[0].likes - results[1].likes,
             results[1].likes - results[0].likes
           ];
-          
-          res.json({
+            res.json({
             stockData: [
-              { stock: results[0].symbol, price: results[0].price, rel_likes: rel_likes[0] },
-              { stock: results[1].symbol, price: results[1].price, rel_likes: rel_likes[1] }
+              { 
+                stock: results[0].stock, 
+                price: results[0].price === 'N/A' ? 0 : Number(results[0].price), 
+                rel_likes: Number(rel_likes[0]) 
+              },
+              { 
+                stock: results[1].stock, 
+                price: results[1].price === 'N/A' ? 0 : Number(results[1].price), 
+                rel_likes: Number(rel_likes[1]) 
+              }
             ]
           });
         } else {

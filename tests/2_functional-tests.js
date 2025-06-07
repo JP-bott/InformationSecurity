@@ -15,10 +15,10 @@ suite('Functional Tests', function() {
         assert.equal(res.status, 200);
         assert.isObject(res.body);
         assert.property(res.body, 'stockData');
-        assert.property(res.body.stockData, 'symbol');
+        assert.property(res.body.stockData, 'stock');
         assert.property(res.body.stockData, 'price');
         assert.property(res.body.stockData, 'likes');
-        assert.equal(res.body.stockData.symbol, 'GOOG');
+        assert.equal(res.body.stockData.stock, 'GOOG');
         assert.isNumber(res.body.stockData.likes);
         done();
       });
@@ -29,14 +29,13 @@ suite('Functional Tests', function() {
     chai.request(server)
       .get('/api/stock-prices')
       .query({ stock: 'MSFT', like: true })
-      .end(function(err, res) {
-        assert.equal(res.status, 200);
+      .end(function(err, res) {        assert.equal(res.status, 200);
         assert.isObject(res.body);
         assert.property(res.body, 'stockData');
-        assert.property(res.body.stockData, 'symbol');
+        assert.property(res.body.stockData, 'stock');
         assert.property(res.body.stockData, 'price');
         assert.property(res.body.stockData, 'likes');
-        assert.equal(res.body.stockData.symbol, 'MSFT');
+        assert.equal(res.body.stockData.stock, 'MSFT');
         assert.isNumber(res.body.stockData.likes);
         assert.isAtLeast(res.body.stockData.likes, 1);
         done();
@@ -47,15 +46,14 @@ suite('Functional Tests', function() {
   test('Viewing the same stock and liking it again: GET request to /api/stock-prices/', function(done) {
     chai.request(server)
       .get('/api/stock-prices')
-      .query({ stock: 'MSFT', like: true })
-      .end(function(err, res) {
+      .query({ stock: 'MSFT', like: true })      .end(function(err, res) {
         assert.equal(res.status, 200);
         assert.isObject(res.body);
         assert.property(res.body, 'stockData');
-        assert.property(res.body.stockData, 'symbol');
+        assert.property(res.body.stockData, 'stock');
         assert.property(res.body.stockData, 'price');
         assert.property(res.body.stockData, 'likes');
-        assert.equal(res.body.stockData.symbol, 'MSFT');
+        assert.equal(res.body.stockData.stock, 'MSFT');
         assert.isNumber(res.body.stockData.likes);
         done();
       });
